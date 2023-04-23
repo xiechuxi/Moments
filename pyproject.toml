@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "moments"
+version = "0.1.0"
+description = ""
+authors = ["xiechuxi"]
+license = "Apache-License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+opencv-python-headless = "^4.7.0.72"
+bilili = "^1.4.13"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
