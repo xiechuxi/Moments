@@ -3,12 +3,13 @@ name = "moments"
 version = "0.1.0"
 description = ""
 authors = ["xiechuxi"]
-license = "Apache-License"
+license = "apache-license"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-opencv-python-headless = "^4.7.0.72"
+opencv-contrib-python = "4.4.0.46"
+opencv-python = "4.4.0.46"
 bilili = "^1.4.13"
 
 
