@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import cv2
-import sys
 from xml.dom import minidom
-import os
+import urllib.request as url_request
 from bilili.api.acg_video import (
     get_acg_video_list,
     get_acg_video_playurl,
@@ -13,6 +11,7 @@ from bilili.api.acg_video import (
 from bilili.api.danmaku import get_danmaku
 
 from typing import List
+from moments.make.emoji import make_moments
 
 from moments.tools import make_dir
 
@@ -27,32 +26,27 @@ from moments.tools import make_dir
 # 9：BAS弹幕
 # The video file mjpg/video.mjpg is simply being accessed on a http server
 # (this is a live feed)
-http_video_file = "http://myapplecam.com/mjpg/video.mjpg"
-
-# OpenCV can also read some saved video files
-#   but it'll take some work installing codecs for your system
-local_video_file = "./test_bili/Videos/file_8275.mp4"
-
-# This will select the first initilized camera device -- 
-#   either a integrated webcam or a usb device
-cameraDevice = 0
 
 class BiliProcessor(object):
-    def __init__(self) -> None:
+    def __init__(self, save_path) -> None:
+        self.save_path = save_path
         pass
 
-    def download_all(self, bvid : str, save_path : str):
+    def get_all(self, bvid : str):
         title = get_acg_video_title(bvid=bvid)
         video_list = get_acg_video_list(bvid=bvid)
-        make_dir(save_path)
+        make_dir(self.save_path)
         for video in video_list:
             cid, name = video["cid"], video["name"]
-            danmus_data = self.parse_xml_comments(get_danmaku(cid=cid))
-            # video_subtitle = get_acg_video_subtitle()
+            make_dir(self.save_path + name + "/")
+            danmus_data = self.parse_xml_danmakus(get_danmaku(cid=cid))
+            video_subtitle = get_acg_video_subtitle()
+            self.download_video(bvid, cid, name)
+            make_moments()
 
         return 
     
-    def parse_xml_comments(self, comments):
+    def parse_xml_danmakus(self, comments):
         file = minidom.parseString(comments)
         danmus = file.getElementsByTagName('d')
         danmus_data = []
@@ -65,73 +59,15 @@ class BiliProcessor(object):
             danmus_data.append({"time": time, "time_stamp": time_stamp, "mode": danmu_mode, "danmu_text": danmu_text})
         return danmus_data
     
+    def download_video(self, bvid, cid, name, type="mp4"):
+        play_urls = get_acg_video_playurl(bvid=bvid, cid=cid, quality=120, audio_quality=30280, type=type)
+        id = url["id"]
+        for url in play_urls:
+            try:
+                url_request.urlretrieve(url["url"], f"{self.save_path}{name}_{id}.{type}")
+            except Exception as ex:
+                print(f"{name}_{id}", ex)
+        return 
+    
     def filter(self, danmus_data):
         return 
-
-
-
-
-
-
-
-
-default_video = http_video_file
-if __name__ == '__main__':
-
-    argument_length = len(sys.argv)
-    if argument_length == 1:
-        # no supplied argument is okay -- use default
-        video_file_type = ""
-    elif argument_length == 2:
-        # if there is a supplied argument, make sure there is only one
-        video_file_type = sys.argv[1]
-    else:
-        # otherwise print an error 
-        exit(1)
-        
-
-
-    # Note: in cv2 the VideoCapture function can be used to create feeds from 
-    #   both a usb device or a file 
-    capture = ""
-    if video_file_type == 'h':
-        capture = http_video_file
-    elif video_file_type == 'l': 
-        capture = local_video_file
-    elif video_file_type == 'u': 
-        capture = cameraDevice
-    elif video_file_type == "":
-        # no supplied 
-        capture = default_video
-    else:
-        exit(1)
-
-    # The VideoCapture method can take a variety of arguments 
-    print(capture)
-    video_capture = cv2.VideoCapture(capture)
-
-    count = 1
-    while True:
-
-        # The video capture object can then be used to read frame by frame
-        #   The img is literaly an image
-        # is_sucessfuly_read is a boolean which returns true or false depending
-        #   on whether the next frame is sucessfully grabbed.
-        is_sucessfully_read, frame = video_capture.read()
-
-        # is_sucessfuly_read will return false when the a file ends, or is no 
-        #   longer available, or has never been available
-        if(is_sucessfully_read):
-            count += 1
-            cv2.imwrite(f"./cat{count}.png", frame)
-        else:
-            print("Cannot read video capture object from %s. Quitting..." % capture)
-            break
-
-        # The waitKey function is odd because it has two functions.
-        # First, it delays the loop for a specified amount of miliseconds as to 
-        #   limit the frames per second and cpu usage
-        # Second, it allows OpenCV to process events, including creating
-        #   a window and redrawing the image every loop.
-        # Basically it's required.
-        cv2.waitKey(100)
