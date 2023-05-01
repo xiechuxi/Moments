@@ -11,6 +11,7 @@ python = "^3.9"
 opencv-contrib-python = "4.4.0.46"
 opencv-python = "4.4.0.46"
 bilili = "^1.4.13"
+weaviate-client = "^3.16.2"
 
 
 [build-system]

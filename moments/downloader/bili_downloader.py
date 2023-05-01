@@ -11,9 +11,9 @@ from bilili.api.acg_video import (
 from bilili.api.danmaku import get_danmaku
 
 from typing import List
-from moments.make.emoji import make_moments
+from make.emoji import make_moments
 
-from moments.tools import make_dir
+from tools import make_dir
 
 # 弹幕格式 https://blog.csdn.net/lyshark_lyshark/article/details/125848570
 # mode
@@ -39,11 +39,14 @@ class BiliProcessor(object):
         for video in video_list:
             cid, name = video["cid"], video["name"]
             make_dir(self.save_path + name + "/")
+            print(self.save_path + name + "/")
             danmus_data = self.parse_xml_danmakus(get_danmaku(cid=cid))
-            video_subtitle = get_acg_video_subtitle()
+            try:
+                video_subtitle = get_acg_video_subtitle(bvid=bvid)
+            except Exception as ex:
+                print(ex)
             self.download_video(bvid, cid, name)
-            make_moments()
-
+            # make_moments()
         return 
     
     def parse_xml_danmakus(self, comments):
@@ -53,20 +56,19 @@ class BiliProcessor(object):
         for danmu in danmus:
             danmu_attributes = danmu.attributes['p'].value.split(",")
             time = danmu_attributes[0]
-            time_stamp = danmu_attributes[4]
             danmu_mode = danmu_attributes[1]
             danmu_text = danmu.firstChild.data
-            danmus_data.append({"time": time, "time_stamp": time_stamp, "mode": danmu_mode, "danmu_text": danmu_text})
+            danmus_data.append({"time": time, "mode": danmu_mode, "danmu_text": danmu_text})
         return danmus_data
     
     def download_video(self, bvid, cid, name, type="mp4"):
         play_urls = get_acg_video_playurl(bvid=bvid, cid=cid, quality=120, audio_quality=30280, type=type)
-        id = url["id"]
         for url in play_urls:
+            video_id = url["id"]
             try:
                 url_request.urlretrieve(url["url"], f"{self.save_path}{name}_{id}.{type}")
             except Exception as ex:
-                print(f"{name}_{id}", ex)
+                print(f"{name}_{video_id}", ex)
         return 
     
     def filter(self, danmus_data):
