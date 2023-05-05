@@ -30,6 +30,7 @@ from tools import make_dir
 class BiliProcessor(object):
     def __init__(self, save_path) -> None:
         self.save_path = save_path
+        self.danmus_data = dict()
         pass
 
     def get_all(self, bvid : str):
@@ -40,7 +41,7 @@ class BiliProcessor(object):
             cid, name = video["cid"], video["name"]
             make_dir(self.save_path + name + "/")
             print(self.save_path + name + "/")
-            danmus_data = self.parse_xml_danmakus(get_danmaku(cid=cid))
+            self.danmus_data[name] = self.parse_xml_danmakus(get_danmaku(cid=cid))
             try:
                 video_subtitle = get_acg_video_subtitle(bvid=bvid)
             except Exception as ex:
@@ -58,7 +59,7 @@ class BiliProcessor(object):
             time = danmu_attributes[0]
             danmu_mode = danmu_attributes[1]
             danmu_text = danmu.firstChild.data
-            danmus_data.append({"time": time, "mode": danmu_mode, "danmu_text": danmu_text})
+            danmus_data.append({"time": time, "mode": danmu_mode, "text": danmu_text})
         return danmus_data
     
     def download_video(self, bvid, cid, name, type="mp4"):
@@ -66,7 +67,7 @@ class BiliProcessor(object):
         for url in play_urls:
             video_id = url["id"]
             try:
-                url_request.urlretrieve(url["url"], f"{self.save_path}{name}_{id}.{type}")
+                url_request.urlretrieve(url["url"], f"{self.save_path}{name}/{video_id}.{type}")
             except Exception as ex:
                 print(f"{name}_{video_id}", ex)
         return 

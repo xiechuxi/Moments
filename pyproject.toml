@@ -12,6 +12,10 @@ opencv-contrib-python = "4.4.0.46"
 opencv-python = "4.4.0.46"
 bilili = "^1.4.13"
 weaviate-client = "^3.16.2"
+elasticsearch = "^8.7.0"
+jina = "^3.15.0"
+transformers = "^4.28.1"
+sentencepiece = "^0.1.99"
 
 
 [build-system]
