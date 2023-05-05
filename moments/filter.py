@@ -8,7 +8,7 @@ class Filter(object):
       text = ""
       for i in range(first_index, last_index):
         text += time_list[i]["text"] + "\n"
-      new_dict = {"time": time_list[0]["time"] + ":" + time_list[-1]["time"], "text": text}
+      new_dict = {"time": time_list[first_index]["time"] + ":" + time_list[last_index]["time"], "text": text}
     else:
       new_dict = {"time": time_list[0]["time"], "text": time_list[0]["text"]}
     return new_dict
@@ -40,23 +40,27 @@ class Filter(object):
         tick_count_map[tick] = last_tick_count
         cur_window_count += last_tick_count
         last_tick_count = 0
-        
+        # forming a window
         if tick - first_tick == window - 1:
           if (first_tick > 0) and (cur_window_count < last_window_count):
             # get last window indices
             if last_window_count >= threshold:
               first_index, last_index = tick_index_map[first_tick-1], tick_index_map[tick]
               new_time_list.append(self.merge_time_unit(time_list, first_index, last_index))
-          last_window_count = cur_window_count
-          cur_window_count -= tick_count_map[first_tick]
+            # move to next local peak window
+            first_tick = tick
+            last_window_count = cur_window_count = 0
+          else:
+            last_window_count = cur_window_count
+            cur_window_count -= tick_count_map[first_tick]
           first_tick += 1
         tick += 1
     return new_time_list
 
   def danmaku_filter(self, title="", danmakus=[], **kwargs):
     if len(danmakus) > 0:
-      danmakus = sorted(danmakus, key=lambda x: x["time"])
-      return self.window_count_filter(danmakus, threshold=kwargs.get("threshold", 2), window=kwargs.get("window", 5))
+      danmakus = sorted(danmakus, key=lambda x: float(x["time"]))
+      return self.window_count_filter(danmakus, threshold=kwargs.get("threshold", 20), window=kwargs.get("window", 5))
     else:
       return danmakus
   
