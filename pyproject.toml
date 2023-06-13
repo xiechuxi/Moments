@@ -16,6 +16,8 @@ elasticsearch = "^8.7.0"
 jina = "^3.15.0"
 transformers = "^4.28.1"
 sentencepiece = "^0.1.99"
+langchain = "0.0.168"
+openai = "^0.27.6"
 
 
 [build-system]

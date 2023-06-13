@@ -33,6 +33,12 @@ def prep_docs(input_file, num_docs=None, shuffle=True):
 
     return docs
 
+def write_list(save_path, list_file):
+    with open(save_path, "w", encoding='utf8') as file:
+        for singleton in list_file:
+            file.write(json.dumps(singleton, ensure_ascii=False) + "\n")
+    return 
+
 def make_dir(save_path : str):
   isExist = os.path.exists(save_path)
   if not isExist:

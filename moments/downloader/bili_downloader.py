@@ -11,7 +11,8 @@ from bilili.api.acg_video import (
 from bilili.api.danmaku import get_danmaku
 
 from typing import List
-from make.emoji import make_moments
+from filter import Filter
+from make.emoji import make_video_moments
 
 from tools import make_dir
 
@@ -30,6 +31,7 @@ from tools import make_dir
 class BiliProcessor(object):
     def __init__(self, save_path) -> None:
         self.save_path = save_path
+        self._filter = Filter()
         self.danmus_data = dict()
         pass
 
@@ -40,14 +42,16 @@ class BiliProcessor(object):
         for video in video_list:
             cid, name = video["cid"], video["name"]
             make_dir(self.save_path + name + "/")
-            print(self.save_path + name + "/")
             self.danmus_data[name] = self.parse_xml_danmakus(get_danmaku(cid=cid))
             try:
                 video_subtitle = get_acg_video_subtitle(bvid=bvid)
+                print(video_subtitle)
             except Exception as ex:
                 print(ex)
-            self.download_video(bvid, cid, name)
-            # make_moments()
+            video_path_list = self.download_video(bvid, cid, name)
+            filtered_danmakus = self._filter.danmaku_filter(danmakus=self.danmus_data[name], filter_by_mode=False, keep_count=6, threshold=8, window=5)
+            for video_path in video_path_list:
+                make_video_moments(video_path, title, filtered_danmakus=filtered_danmakus)
         return 
     
     def parse_xml_danmakus(self, comments):
@@ -64,13 +68,15 @@ class BiliProcessor(object):
     
     def download_video(self, bvid, cid, name, type="mp4"):
         play_urls = get_acg_video_playurl(bvid=bvid, cid=cid, quality=120, audio_quality=30280, type=type)
+        video_path_list = []
         for url in play_urls:
             video_id = url["id"]
             try:
                 url_request.urlretrieve(url["url"], f"{self.save_path}{name}/{video_id}.{type}")
+                video_path_list.append(f"{self.save_path}{name}/{video_id}.{type}")
             except Exception as ex:
                 print(f"{name}_{video_id}", ex)
-        return 
+        return video_path_list
     
     def filter(self, danmus_data):
         return 
