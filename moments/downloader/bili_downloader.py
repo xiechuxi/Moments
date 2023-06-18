@@ -8,10 +8,15 @@ from bilili.api.acg_video import (
     get_acg_video_title,
     get_video_info,
 )
-from bilili.api.danmaku import get_danmaku
+import re
+import requests
+import os
+import json
+# from bilili.api.danmaku import get_danmaku
 
 from typing import List
 from filter import Filter
+from .bili_download import download_bili_danmakus
 from make.emoji import make_video_moments
 
 from tools import make_dir
@@ -34,25 +39,6 @@ class BiliProcessor(object):
         self._filter = Filter()
         self.danmus_data = dict()
         pass
-
-    def get_all(self, bvid : str):
-        title = get_acg_video_title(bvid=bvid)
-        video_list = get_acg_video_list(bvid=bvid)
-        make_dir(self.save_path)
-        for video in video_list:
-            cid, name = video["cid"], video["name"]
-            make_dir(self.save_path + name + "/")
-            self.danmus_data[name] = self.parse_xml_danmakus(get_danmaku(cid=cid))
-            try:
-                video_subtitle = get_acg_video_subtitle(bvid=bvid)
-                print(video_subtitle)
-            except Exception as ex:
-                print(ex)
-            video_path_list = self.download_video(bvid, cid, name)
-            filtered_danmakus = self._filter.danmaku_filter(danmakus=self.danmus_data[name], filter_by_mode=False, keep_count=6, threshold=8, window=5)
-            for video_path in video_path_list:
-                make_video_moments(video_path, title, filtered_danmakus=filtered_danmakus)
-        return 
     
     def parse_xml_danmakus(self, comments):
         file = minidom.parseString(comments)
@@ -65,6 +51,45 @@ class BiliProcessor(object):
             danmu_text = danmu.firstChild.data
             danmus_data.append({"time": time, "mode": danmu_mode, "text": danmu_text})
         return danmus_data
+
+    def get_bvid(self, video_url):
+        match = re.search("https://www.bilibili.com/video/(.*)/", video_url)
+        if match:
+            sub_string = match.group()
+            return sub_string.split("/")[-2]
+        else:
+            return ""
+    
+    def get_all(self, video_url):
+        bvid = self.get_bvid(video_url)
+        info_videos = download_bili_danmakus(video_url, self.save_path)
+        print(info_videos)
+        list_name, video_list = info_videos["list_name"], info_videos["video_list"]
+        for video_info in video_list:
+            total_danmakus = []
+            video_name = video_info["title"]
+            danmakus_path = f"{self.save_path}/{list_name}/{video_name}"
+            onlyfiles = [os.path.join(danmakus_path, f) for f in os.listdir(danmakus_path) if 'json' in os.path.join(danmakus_path, f)]
+            for file in onlyfiles:
+                try:
+                    with open(file, "r") as r_file:
+                        single_file = json.load(r_file)
+                        total_danmakus += single_file
+                except Exception as ex:
+                    print(ex)
+            
+            total_danmakus = [{"time": danmaku.get("progress", -1), "mode": danmaku.get("mode", 0), "text": danmaku["content"]} for danmaku in total_danmakus]
+            
+            try:
+                video_subtitle = get_acg_video_subtitle(bvid=bvid)
+                print(video_subtitle)
+            except Exception as ex:
+                print(ex)
+
+            video_path_list = self.download_video(bvid, video_info["cid"], video_name)
+            filtered_danmakus = self._filter.danmaku_filter(danmakus=total_danmakus, filter_by_mode=False, keep_count=6, threshold=8, window=5)
+            for video_path in video_path_list:
+                make_video_moments(video_path, video_name, filtered_danmakus=filtered_danmakus)
     
     def download_video(self, bvid, cid, name, type="mp4"):
         play_urls = get_acg_video_playurl(bvid=bvid, cid=cid, quality=120, audio_quality=30280, type=type)

@@ -79,8 +79,16 @@ class Filter(object):
     return new_time_list
 
   def danmaku_filter(self, title="", danmakus=[], **kwargs):
+    all_danmakus = set()
+    new_danmakus = []
     if len(danmakus) > 0:
-      danmakus = sorted(danmakus, key=lambda x: float(x["time"]))
+      for danmaku in danmakus:
+        code_key = str(danmaku["time"]) + "-" + danmaku["text"]
+        if code_key not in all_danmakus:
+          new_danmakus.append(danmaku)
+          all_danmakus.add(code_key)
+      print(len(new_danmakus))
+      danmakus = sorted(new_danmakus, key=lambda x: float(x["time"]))
       write_list("./danmaku_file.txt", danmakus)
       return self.window_count_filter(danmakus, **kwargs)
     else:
